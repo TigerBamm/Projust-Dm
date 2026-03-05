@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💖 CipherVibe Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #ff9cee, #f7a1ff, #ff77d9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.35);
+            padding: 30px;
+            border-radius: 25px;
+            width: 450px;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(15px);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ff3399;
+            text-shadow: 0 0 15px #ff99cc;
+        }
+
+        label {
+            font-weight: bold;
+            margin-top: 10px;
+            display: block;
+            color: black;
+        }
+
+        textarea,
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            border-radius: 15px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.7);
+            color: black;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2) inset;
+        }
+
+        textarea {
+            resize: none;
+            height: 100px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.3s;
+            background: #ff66b3;
+            color: white;
+            box-shadow: 0 0 15px #ff66b3;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        textarea#output {
+            background: rgba(255, 255, 255, 0.6);
+            color: black;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>💖 CipherVibe Pro</h1>
+
+        <label for="cipher">Select Cipher</label>
+        <select id="cipher" onchange="updateInputs()">
+            <option value="caesar">Caesar Cipher</option>
+            <option value="shift">General Shift Cipher</option>
+            <option value="affine">Affine Cipher</option>
+            <option value="transposition">Transposition Cipher</option>
+        </select>
+
+        <label for="text">Input</label>
+        <textarea id="text" placeholder="Type your message"></textarea>
+
+        <div id="inputs">
+            <label for="shift">Shift Value</label>
+            <input type="number" id="shift" value="3">
+        </div>
+
+        <label for="mode">Mode</label>
+        <select id="mode">
+            <option value="encrypt">Encrypt</option>
+            <option value="decrypt">Decrypt</option>
+        </select>
+
+        <button onclick="runCipher()">Run Cipher</button>
+
+        <label for="output">Output</label>
+        <textarea id="output" readonly placeholder="Result will appear here"></textarea>
+    </div>
+
+    <script>
+        // Update inputs dynamically
+        function updateInputs() {
+            const cipher = document.getElementById("cipher").value;
+            const container = document.getElementById("inputs");
+            container.innerHTML = "";
+
+            if (cipher === "caesar" || cipher === "shift") {
+                container.innerHTML = `<label>Shift Value</label><input type="number" id="shift" value="3">`;
+            } else if (cipher === "affine") {
+                container.innerHTML = `<label>Multiplier (a)</label><input type="number" id="a" value="5">
+                           <label>Shift (b)</label><input type="number" id="b" value="8">`;
+            } else if (cipher === "transposition") {
+                container.innerHTML = `<label>Key (any letters or numbers)</label><input type="text" id="key" value="KEY">`;
+            }
+        }
+
+        // Caesar / Shift Cipher
+        function caesarEncrypt(text, shift) {
+            return text.split('').map(c => {
+                if (/[a-z]/i.test(c)) {
+                    const code = c.charCodeAt(0);
+                    const base = code >= 65 && code <= 90 ? 65 : 97;
+                    return String.fromCharCode((code - base + shift) % 26 + base);
+                }
+                return c;
+            }).join('');
+        }
+
+        function caesarDecrypt(text, shift) {
+            return caesarEncrypt(text, 26 - (shift % 26));
+        }
+
+        // Affine Cipher
+        function modInverse(a, m) {
+            a = a % m;
+            for (let x = 1; x < m; x++) if ((a * x) % m === 1) return x;
+            return -1;
+        }
+
+        function affineEncrypt(text, a, b) {
+            return text.split('').map(c => {
+                if (/[a-z]/i.test(c)) {
+                    const code = c.charCodeAt(0);
+                    const base = code >= 65 && code <= 90 ? 65 : 97;
+                    return String.fromCharCode(((a * (code - base) + b) % 26) + base);
+                }
+                return c;
+            }).join('');
+        }
+
+        function affineDecrypt(text, a, b) {
+            const a_inv = modInverse(a, 26);
+            if (a_inv === -1) { alert("Invalid 'a' value!"); return ""; }
+            return text.split('').map(c => {
+                if (/[a-z]/i.test(c)) {
+                    const code = c.charCodeAt(0);
+                    const base = code >= 65 && code <= 90 ? 65 : 97;
+                    return String.fromCharCode(((a_inv * (code - base - b + 26)) % 26) + base);
+                }
+                return c;
+            }).join('');
+        }
+
+        // Transposition Cipher
+        function transpositionEncrypt(text, key) {
+            let cols = key.length || parseInt(key) || 4;
+            text = text.replace(/ /g, '');
+            let result = "";
+            for (let i = 0; i < cols; i++) for (let j = i; j < text.length; j += cols) result += text[j];
+            return result;
+        }
+
+        function transpositionDecrypt(text, key) {
+            let cols = key.length || parseInt(key) || 4;
+            let rows = Math.ceil(text.length / cols);
+            let grid = Array.from({ length: rows }, () => Array(cols).fill(""));
+            let index = 0;
+            for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) if (index < text.length) grid[r][c] = text[index++];
+            let result = "";
+            for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) result += grid[r][c];
+            return result;
+        }
+
+        // Run cipher based on selection
+        function runCipher() {
+            const cipher = document.getElementById("cipher").value;
+            const mode = document.getElementById("mode").value;
+            const text = document.getElementById("text").value;
+            let result = "";
+
+            if (cipher === "caesar" || cipher === "shift") {
+                const shift = parseInt(document.getElementById("shift").value) || 0;
+                result = mode === "encrypt" ? caesarEncrypt(text, shift) : caesarDecrypt(text, shift);
+            }
+            else if (cipher === "affine") {
+                const a = parseInt(document.getElementById("a").value) || 1;
+                const b = parseInt(document.getElementById("b").value) || 0;
+                result = mode === "encrypt" ? affineEncrypt(text, a, b) : affineDecrypt(text, a, b);
+            }
+            else if (cipher === "transposition") {
+                const key = document.getElementById("key").value || "KEY";
+                result = mode === "encrypt" ? transpositionEncrypt(text, key) : transpositionDecrypt(text, key);
+            }
+
+            document.getElementById("output").value = result;
+        }
+
+        updateInputs();
+    </script>
+</body>
+
+</html>
